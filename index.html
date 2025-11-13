@@ -1,324 +1,1215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🍪 Cookie Clicker Game</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie Clicker</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body style="margin: 0; padding: 0;">
-    <div id="root"></div>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+
+const { useState, useEffect, useRef } = React;
+   const { Cookie, Sparkles, Zap, TrendingUp, Star, Crown, Gem, DollarSign, Home, Award, Palette, Dices } = lucideReact;
+function CookieClickerGame() {
+  const [cookies, setCookies] = useState(0);
+  const [crystals, setCrystals] = useState(0);
+  const [totalClicks, setTotalClicks] = useState(0);
+  const [clickMultiplier, setClickMultiplier] = useState(1);
+  const [autoClicker, setAutoClicker] = useState(0);
+  const [clickAnimations, setClickAnimations] = useState([]);
+  const [currentPage, setCurrentPage] = useState('game');
+  const [cookiePrice, setCookiePrice] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [xp, setXp] = useState(0);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [achievements, setAchievements] = useState({});
+  const [showAchievement, setShowAchievement] = useState(null);
+  const [slotSymbols, setSlotSymbols] = useState(['🍪', '🍪', '🍪']);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [lastSlotWin, setLastSlotWin] = useState(null);
+  const [currentSkin, setCurrentSkin] = useState('classic');
+  const [ownedSkins, setOwnedSkins] = useState(['classic']);
+  const [theme, setTheme] = useState('light');
+  const [clickUpgradeLevel, setClickUpgradeLevel] = useState(0);
+  const [autoClickerLevel, setAutoClickerLevel] = useState(0);
+  const [goldenTouchLevel, setGoldenTouchLevel] = useState(0);
+  const [clickEffectLevel, setClickEffectLevel] = useState(0);
+  const [crystalMultiplierLevel, setCrystalMultiplierLevel] = useState(0);
+  const [megaBoostLevel, setMegaBoostLevel] = useState(0);
+  const [isBoostActive, setIsBoostActive] = useState(false);
+  const [boostTimer, setBoostTimer] = useState(0);
+  const [goldenCookie, setGoldenCookie] = useState(null);
+  const [showGoldenCookie, setShowGoldenCookie] = useState(false);
+  const clickTimes = useRef([]);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockTimer, setBlockTimer] = useState(0);
+  const [telegramUser, setTelegramUser] = useState(null);
+  const [saveStatus, setSaveStatus] = useState('');
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      
+      const user = tg.initDataUnsafe?.user;
+      if (user) {
+        setTelegramUser(user);
+        loadGameData();
+      }
+
+      if (tg.colorScheme === 'dark') {
+        setTheme('dark');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const saveInterval = setInterval(() => {
+      saveGameData();
+    }, 10000);
+    return () => clearInterval(saveInterval);
+  }, [cookies, crystals, totalClicks, level, xp, clickMultiplier, autoClicker, 
+      achievements, currentSkin, ownedSkins, theme, clickUpgradeLevel, 
+      autoClickerLevel, goldenTouchLevel, clickEffectLevel, 
+      crystalMultiplierLevel, megaBoostLevel]);
+
+  const saveGameData = () => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return;
+
+    const gameData = {
+      cookies,
+      crystals,
+      totalClicks,
+      clickMultiplier,
+      autoClicker,
+      level,
+      xp,
+      achievements,
+      currentSkin,
+      ownedSkins,
+      theme,
+      clickUpgradeLevel,
+      autoClickerLevel,
+      goldenTouchLevel,
+      clickEffectLevel,
+      crystalMultiplierLevel,
+      megaBoostLevel,
+      lastSaved: Date.now()
+    };
+
+    tg.CloudStorage.setItem('gameData', JSON.stringify(gameData), (error) => {
+      if (error) {
+        setSaveStatus('⚠️ Save failed');
+      } else {
+        setSaveStatus('💾 Saved');
+        setTimeout(() => setSaveStatus(''), 2000);
+      }
+    });
+  };
+
+  const loadGameData = () => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return;
+
+    tg.CloudStorage.getItem('gameData', (error, data) => {
+      if (!error && data) {
+        try {
+          const gameData = JSON.parse(data);
+          setCookies(gameData.cookies || 0);
+          setCrystals(gameData.crystals || 0);
+          setTotalClicks(gameData.totalClicks || 0);
+          setClickMultiplier(gameData.clickMultiplier || 1);
+          setAutoClicker(gameData.autoClicker || 0);
+          setLevel(gameData.level || 1);
+          setXp(gameData.xp || 0);
+          setAchievements(gameData.achievements || {});
+          setCurrentSkin(gameData.currentSkin || 'classic');
+          setOwnedSkins(gameData.ownedSkins || ['classic']);
+          setTheme(gameData.theme || 'light');
+          setClickUpgradeLevel(gameData.clickUpgradeLevel || 0);
+          setAutoClickerLevel(gameData.autoClickerLevel || 0);
+          setGoldenTouchLevel(gameData.goldenTouchLevel || 0);
+          setClickEffectLevel(gameData.clickEffectLevel || 0);
+          setCrystalMultiplierLevel(gameData.crystalMultiplierLevel || 0);
+          setMegaBoostLevel(gameData.megaBoostLevel || 0);
+          setSaveStatus('✅ Loaded');
+          setTimeout(() => setSaveStatus(''), 2000);
+        } catch (e) {
+          console.error('Failed to load game data:', e);
+        }
+      }
+    });
+  };
+
+  const sendHapticFeedback = (type = 'light') => {
+    const tg = window.Telegram?.WebApp;
+    if (tg && tg.HapticFeedback) {
+      if (type === 'heavy') {
+        tg.HapticFeedback.impactOccurred('heavy');
+      } else if (type === 'medium') {
+        tg.HapticFeedback.impactOccurred('medium');
+      } else {
+        tg.HapticFeedback.impactOccurred('light');
+      }
+    }
+  };
+
+  const getXPForLevel = (lvl) => {
+    if (lvl <= 30) {
+      return Math.floor(50 + (lvl * 20));
+    } else {
+      return Math.floor(50 + (30 * 20) + ((lvl - 30) * 50));
+    }
+  };
+
+  const getLevelUpReward = (lvl) => {
+    return Math.floor(100 + (lvl * 25));
+  };
+
+  const xpNeeded = getXPForLevel(level);
+
+  const cookieSkins = {
+    classic: { emoji: '🍪', name: 'Classic Cookie', price: 0, color: 'from-amber-300 via-orange-400 to-amber-500' },
+    chocolate: { emoji: '🍫', name: 'Chocolate Cookie', price: 5000, color: 'from-amber-700 via-amber-800 to-amber-900' },
+    rainbow: { emoji: '🌈', name: 'Rainbow Cookie', price: 15000, color: 'from-pink-400 via-purple-500 to-blue-500' },
+    golden: { emoji: '⭐', name: 'Golden Cookie', price: 50000, color: 'from-yellow-300 via-yellow-400 to-yellow-500' },
+    diamond: { emoji: '💎', name: 'Diamond Cookie', price: 100000, color: 'from-cyan-300 via-blue-400 to-indigo-500' },
+    fire: { emoji: '🔥', name: 'Fire Cookie', price: 200000, color: 'from-red-500 via-orange-500 to-yellow-400' }
+  };
+
+  const themes = {
+    light: {
+      bg: 'from-amber-50 via-orange-50 to-yellow-50',
+      card: 'bg-white',
+      text: 'text-gray-900'
+    },
+    dark: {
+      bg: 'from-gray-900 via-slate-800 to-gray-900',
+      card: 'bg-gray-800',
+      text: 'text-white'
+    },
+    neon: {
+      bg: 'from-purple-900 via-pink-900 to-purple-900',
+      card: 'bg-black',
+      text: 'text-pink-300'
+    },
+    ocean: {
+      bg: 'from-blue-400 via-cyan-300 to-teal-400',
+      card: 'bg-blue-900',
+      text: 'text-white'
+    }
+  };
+
+  const achievementsList = [
+    { id: 'first_click', name: 'First Click', desc: 'Click the cookie for the first time', check: () => totalClicks >= 1, reward: 100 },
+    { id: 'click_100', name: 'Cookie Enthusiast', desc: 'Click 100 times', check: () => totalClicks >= 100, reward: 500 },
+    { id: 'click_1000', name: 'Cookie Master', desc: 'Click 1,000 times', check: () => totalClicks >= 1000, reward: 2000 },
+    { id: 'click_10000', name: 'Cookie Legend', desc: 'Click 10,000 times', check: () => totalClicks >= 10000, reward: 10000 },
+    { id: 'level_10', name: 'Rising Star', desc: 'Reach level 10', check: () => level >= 10, reward: 1000 },
+    { id: 'level_25', name: 'Pro Player', desc: 'Reach level 25', check: () => level >= 25, reward: 5000 },
+    { id: 'level_50', name: 'Elite Baker', desc: 'Reach level 50', check: () => level >= 50, reward: 20000 },
+    { id: 'cookies_10k', name: 'Cookie Collector', desc: 'Collect 10,000 cookies', check: () => cookies >= 10000, reward: 1000 },
+    { id: 'cookies_100k', name: 'Cookie Hoarder', desc: 'Collect 100,000 cookies', check: () => cookies >= 100000, reward: 5000 },
+    { id: 'cookies_1m', name: 'Cookie Millionaire', desc: 'Collect 1,000,000 cookies', check: () => cookies >= 1000000, reward: 50000 }
+  ];
+
+  useEffect(() => {
+    if (boostTimer > 0) {
+      const interval = setInterval(() => {
+        setBoostTimer(prev => {
+          if (prev <= 1) {
+            setIsBoostActive(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [boostTimer]);
+
+  const showRewardedAd = () => {
+    sendHapticFeedback('medium');
+    setCookies(prev => prev + 300);
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.showAlert('🎉 You earned 300 bonus cookies!');
+    }
+  };
+
+  const spinSlots = () => {
+    if (cookies < 1000 || isSpinning) return;
     
-    <script type="text/babel">
-        const { Cookie, Sparkles, Zap, TrendingUp, Star, Crown, Gem, DollarSign, Home, Award, Palette, Dices } = lucide;
-        const { useState, useEffect, useRef } = React;
+    sendHapticFeedback('medium');
+    setCookies(prev => prev - 1000);
+    setIsSpinning(true);
+    setLastSlotWin(null);
+    
+    const symbols = ['🍪', '💎', '⭐', '🔥', '🌈', '👑'];
+    let spins = 0;
+    const spinInterval = setInterval(() => {
+      setSlotSymbols([
+        symbols[Math.floor(Math.random() * symbols.length)],
+        symbols[Math.floor(Math.random() * symbols.length)],
+        symbols[Math.floor(Math.random() * symbols.length)]
+      ]);
+      spins++;
+      
+      if (spins >= 20) {
+        clearInterval(spinInterval);
+        const finalSymbols = [
+          symbols[Math.floor(Math.random() * symbols.length)],
+          symbols[Math.floor(Math.random() * symbols.length)],
+          symbols[Math.floor(Math.random() * symbols.length)]
+        ];
+        setSlotSymbols(finalSymbols);
+        
+        if (finalSymbols[0] === finalSymbols[1] && finalSymbols[1] === finalSymbols[2]) {
+          let winAmount = 0;
+          if (finalSymbols[0] === '👑') winAmount = 50000;
+          else if (finalSymbols[0] === '💎') winAmount = 20000;
+          else if (finalSymbols[0] === '🔥') winAmount = 10000;
+          else if (finalSymbols[0] === '⭐') winAmount = 5000;
+          else if (finalSymbols[0] === '🌈') winAmount = 3000;
+          else if (finalSymbols[0] === '🍪') winAmount = 2000;
+          
+          setCookies(prev => prev + winAmount);
+          setLastSlotWin(winAmount);
+          sendHapticFeedback('heavy');
+        } else {
+          setLastSlotWin(0);
+        }
+        
+        setIsSpinning(false);
+      }
+    }, 100);
+  };
 
-        function CookieClickerGame() {
-          const [cookies, setCookies] = useState(0);
-          const [crystals, setCrystals] = useState(0);
-          const [totalClicks, setTotalClicks] = useState(0);
-          const [clickMultiplier, setClickMultiplier] = useState(1);
-          const [autoClicker, setAutoClicker] = useState(0);
-          const [clickAnimations, setClickAnimations] = useState([]);
-          const [currentPage, setCurrentPage] = useState('game');
-          const [cookiePrice, setCookiePrice] = useState(0);
-          const [adsLoaded, setAdsLoaded] = useState(false);
-          const [level, setLevel] = useState(1);
-          const [xp, setXp] = useState(0);
-          const [showLevelUp, setShowLevelUp] = useState(false);
-          const [achievements, setAchievements] = useState({});
-          const [showAchievement, setShowAchievement] = useState(null);
-          const [slotSymbols, setSlotSymbols] = useState(['🍪', '🍪', '🍪']);
-          const [isSpinning, setIsSpinning] = useState(false);
-          const [lastSlotWin, setLastSlotWin] = useState(null);
-          const [currentSkin, setCurrentSkin] = useState('classic');
-          const [ownedSkins, setOwnedSkins] = useState(['classic']);
-          const [theme, setTheme] = useState('light');
-          const [clickUpgradeLevel, setClickUpgradeLevel] = useState(0);
-          const [autoClickerLevel, setAutoClickerLevel] = useState(0);
-          const [goldenTouchLevel, setGoldenTouchLevel] = useState(0);
-          const [clickEffectLevel, setClickEffectLevel] = useState(0);
-          const [crystalMultiplierLevel, setCrystalMultiplierLevel] = useState(0);
-          const [megaBoostLevel, setMegaBoostLevel] = useState(0);
-          const [isBoostActive, setIsBoostActive] = useState(false);
-          const [boostTimer, setBoostTimer] = useState(0);
-          const [goldenCookie, setGoldenCookie] = useState(null);
-          const [showGoldenCookie, setShowGoldenCookie] = useState(false);
-          const clickTimes = useRef([]);
-          const [isBlocked, setIsBlocked] = useState(false);
-          const [blockTimer, setBlockTimer] = useState(0);
+  const buySkin = (skinKey) => {
+    const skin = cookieSkins[skinKey];
+    if (ownedSkins.includes(skinKey)) {
+      setCurrentSkin(skinKey);
+      sendHapticFeedback('light');
+    } else if (cookies >= skin.price) {
+      setCookies(prev => prev - skin.price);
+      setOwnedSkins(prev => [...prev, skinKey]);
+      setCurrentSkin(skinKey);
+      sendHapticFeedback('heavy');
+    }
+  };
 
-          const getXPForLevel = (lvl) => {
-            if (lvl <= 30) {
-              return Math.floor(50 + (lvl * 20));
-            } else {
-              return Math.floor(50 + (30 * 20) + ((lvl - 30) * 50));
-            }
-          };
+  const activateBoost = () => {
+    sendHapticFeedback('heavy');
+    setIsBoostActive(true);
+    setBoostTimer(30);
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.showAlert('💥 10x earnings activated for 30 seconds!');
+    }
+  };
 
-          const getLevelUpReward = (lvl) => {
-            return Math.floor(100 + (lvl * 25));
-          };
+  useEffect(() => {
+    achievementsList.forEach(achievement => {
+      if (!achievements[achievement.id] && achievement.check()) {
+        setAchievements(prev => ({ ...prev, [achievement.id]: true }));
+        setCookies(c => c + achievement.reward);
+        setShowAchievement(achievement);
+        sendHapticFeedback('heavy');
+        setTimeout(() => setShowAchievement(null), 3000);
+      }
+    });
+  }, [totalClicks, level, cookies, crystals, clickUpgradeLevel, autoClickerLevel]);
 
-          const xpNeeded = getXPForLevel(level);
+  useEffect(() => {
+    const updatePrice = () => {
+      setCookiePrice(prev => {
+        const change = (Math.random() - 0.5) * 0.002;
+        const newPrice = prev === 0 ? 0.0347 : prev + change;
+        return Math.max(0.01, Math.min(0.1, newPrice));
+      });
+    };
+    updatePrice();
+    const interval = setInterval(updatePrice, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-          const cookieSkins = {
-            classic: { emoji: '🍪', name: 'Classic Cookie', price: 0, color: 'from-amber-300 via-orange-400 to-amber-500' },
-            chocolate: { emoji: '🍫', name: 'Chocolate Cookie', price: 5000, color: 'from-amber-700 via-amber-800 to-amber-900' },
-            rainbow: { emoji: '🌈', name: 'Rainbow Cookie', price: 15000, color: 'from-pink-400 via-purple-500 to-blue-500' },
-            golden: { emoji: '⭐', name: 'Golden Cookie', price: 50000, color: 'from-yellow-300 via-yellow-400 to-yellow-500' },
-            diamond: { emoji: '💎', name: 'Diamond Cookie', price: 100000, color: 'from-cyan-300 via-blue-400 to-indigo-500' },
-            fire: { emoji: '🔥', name: 'Fire Cookie', price: 200000, color: 'from-red-500 via-orange-500 to-yellow-400' }
-          };
+  useEffect(() => {
+    if (autoClicker > 0) {
+      const interval = setInterval(() => {
+        setCookies(prev => prev + autoClicker);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [autoClicker]);
 
-          const themes = {
-            light: { bg: 'from-amber-50 via-orange-50 to-yellow-50', card: 'bg-white', text: 'text-gray-900' },
-            dark: { bg: 'from-gray-900 via-slate-800 to-gray-900', card: 'bg-gray-800', text: 'text-white' },
-            neon: { bg: 'from-purple-900 via-pink-900 to-purple-900', card: 'bg-black', text: 'text-pink-300' },
-            ocean: { bg: 'from-blue-400 via-cyan-300 to-teal-400', card: 'bg-blue-900', text: 'text-white' }
-          };
+  useEffect(() => {
+    const spawnGoldenCookie = () => {
+      const randomTime = Math.random() * 40000 + 20000;
+      
+      setTimeout(() => {
+        const x = Math.random() * 70 + 10;
+        const y = Math.random() * 60 + 10;
+        setGoldenCookie({ x, y, id: Date.now() });
+        setShowGoldenCookie(true);
+        
+        setTimeout(() => {
+          setShowGoldenCookie(false);
+          setGoldenCookie(null);
+          spawnGoldenCookie();
+        }, 10000);
+      }, randomTime);
+    };
 
-          const achievementsList = [
-            { id: 'first_click', name: 'First Click', desc: 'Click the cookie for the first time', check: () => totalClicks >= 1, reward: 100 },
-            { id: 'click_100', name: 'Cookie Enthusiast', desc: 'Click 100 times', check: () => totalClicks >= 100, reward: 500 },
-            { id: 'click_1000', name: 'Cookie Master', desc: 'Click 1,000 times', check: () => totalClicks >= 1000, reward: 2000 }
-          ];
+    spawnGoldenCookie();
+  }, []);
 
-          useEffect(() => {
-            achievementsList.forEach(achievement => {
-              if (!achievements[achievement.id] && achievement.check()) {
-                setAchievements(prev => ({ ...prev, [achievement.id]: true }));
-                setCookies(c => c + achievement.reward);
-                setShowAchievement(achievement);
-                setTimeout(() => setShowAchievement(null), 3000);
-              }
-            });
-          }, [totalClicks, level, cookies, crystals]);
+  useEffect(() => {
+    if (blockTimer > 0) {
+      const interval = setInterval(() => {
+        setBlockTimer(prev => {
+          if (prev <= 1) {
+            setIsBlocked(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [blockTimer]);
 
-          useEffect(() => {
-            if (autoClicker > 0) {
-              const interval = setInterval(() => {
-                setCookies(prev => prev + autoClicker);
-              }, 1000);
-              return () => clearInterval(interval);
-            }
-          }, [autoClicker]);
+  const handleCookieClick = (e) => {
+    if (isBlocked) return;
 
-          const handleCookieClick = (e) => {
-            if (isBlocked) return;
+    const now = Date.now();
+    
+    clickTimes.current.push(now);
+    if (clickTimes.current.length > 10) {
+      clickTimes.current.shift();
+    }
+    
+    if (clickTimes.current.length >= 10) {
+      const timeDiff = now - clickTimes.current[0];
+      const avgInterval = timeDiff / 9;
+      
+      if (avgInterval < 50) {
+        setIsBlocked(true);
+        setBlockTimer(30);
+        clickTimes.current = [];
+        return;
+      }
+    }
 
-            const now = Date.now();
-            clickTimes.current.push(now);
-            if (clickTimes.current.length > 10) {
-              clickTimes.current.shift();
-            }
+    sendHapticFeedback('light');
+    
+    const baseEarned = clickMultiplier;
+    const earnedCookies = isBoostActive ? baseEarned * 10 : baseEarned;
+    setCookies(prev => prev + earnedCookies);
+    setTotalClicks(prev => prev + 1);
 
-            if (clickTimes.current.length >= 10) {
-              const timeDiff = now - clickTimes.current[0];
-              const avgInterval = timeDiff / 9;
-              
-              if (avgInterval < 50) {
-                setIsBlocked(true);
-                setBlockTimer(30);
-                clickTimes.current = [];
-                return;
-              }
-            }
+    const xpGain = 1;
+    setXp(prev => {
+      const newXp = prev + xpGain;
+      if (newXp >= xpNeeded) {
+        const reward = getLevelUpReward(level);
+        setCookies(c => c + reward);
+        setLevel(l => l + 1);
+        setShowLevelUp(true);
+        sendHapticFeedback('heavy');
+        setTimeout(() => setShowLevelUp(false), 3000);
+        return 0;
+      }
+      return newXp;
+    });
 
-            const baseEarned = clickMultiplier;
-            const earnedCookies = isBoostActive ? baseEarned * 10 : baseEarned;
-            setCookies(prev => prev + earnedCookies);
-            setTotalClicks(prev => prev + 1);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const effectMultiplier = 1 + (clickEffectLevel * 0.5);
+    const numParticles = Math.floor(3 * effectMultiplier);
+    
+    const newAnimations = [];
+    for (let i = 0; i < numParticles; i++) {
+      newAnimations.push({
+        id: Date.now() + i,
+        x: x + (Math.random() - 0.5) * 40,
+        y: y + (Math.random() - 0.5) * 40,
+        text: `+${earnedCookies}`
+      });
+    }
+    
+    setClickAnimations(prev => [...prev, ...newAnimations]);
+    setTimeout(() => {
+      setClickAnimations(prev => prev.filter(a => !newAnimations.find(n => n.id === a.id)));
+    }, 1000);
+  };
 
-            const xpGain = 1;
-            setXp(prev => {
-              const newXp = prev + xpGain;
-              if (newXp >= xpNeeded) {
-                const reward = getLevelUpReward(level);
-                setCookies(c => c + reward);
-                setLevel(l => l + 1);
-                setShowLevelUp(true);
-                setTimeout(() => setShowLevelUp(false), 3000);
-                return 0;
-              }
-              return newXp;
-            });
+  const handleGoldenCookieClick = () => {
+    sendHapticFeedback('heavy');
+    setCookies(prev => prev + 10);
+    setShowGoldenCookie(false);
+    setGoldenCookie(null);
+  };
 
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+  const convertToCrystals = () => {
+    if (cookies >= 10000) {
+      const crystalsToAdd = Math.floor(cookies / 10000);
+      setCrystals(prev => prev + crystalsToAdd);
+      setCookies(prev => prev - (crystalsToAdd * 10000));
+      sendHapticFeedback('medium');
+    }
+  };
+
+  const buyClickUpgrade = () => {
+    const cost = Math.floor(100 * Math.pow(1.5, clickUpgradeLevel));
+    if (cookies >= cost) {
+      setCookies(prev => prev - cost);
+      setClickUpgradeLevel(prev => prev + 1);
+      setClickMultiplier(prev => prev + (clickUpgradeLevel < 10 ? 1 : clickUpgradeLevel < 20 ? 5 : 10));
+      sendHapticFeedback('medium');
+    }
+  };
+
+  const buyAutoClicker = () => {
+    const cost = Math.floor(500 * Math.pow(1.6, autoClickerLevel));
+    if (cookies >= cost) {
+      setCookies(prev => prev - cost);
+      setAutoClickerLevel(prev => prev + 1);
+      setAutoClicker(prev => prev + (autoClickerLevel < 5 ? 1 : autoClickerLevel < 10 ? 3 : 5));
+      sendHapticFeedback('medium');
+    }
+  };
+
+  const buyGoldenTouch = () => {
+    const cost = Math.floor(2000 * Math.pow(1.8, goldenTouchLevel));
+    if (cookies >= cost) {
+      setCookies(prev => prev - cost);
+      setGoldenTouchLevel(prev => prev + 1);
+      setClickMultiplier(prev => prev * 1.5);
+      sendHapticFeedback('medium');
+    }
+  };
+
+  const buyClickEffect = () => {
+    const cost = Math.floor(1500 * Math.pow(1.7, clickEffectLevel));
+    if (cookies >= cost) {
+      setCookies(prev => prev - cost);
+      setClickEffectLevel(prev => prev + 1);
+      sendHapticFeedback('medium');
+    }
+  };
+
+  const buyCrystalMultiplier = () => {
+    const cost = 1 + crystalMultiplierLevel;
+    if (crystals >= cost) {
+      setCrystals(prev => prev - cost);
+      setCrystalMultiplierLevel(prev => prev + 1);
+      setClickMultiplier(prev => prev * 2);
+      sendHapticFeedback('heavy');
+    }
+  };
+
+  const buyMegaBoost = () => {
+    const cost = 5 + (megaBoostLevel * 3);
+    if (crystals >= cost) {
+      setCrystals(prev => prev - cost);
+      setMegaBoostLevel(prev => prev + 1);
+      setClickMultiplier(prev => prev * 5);
+      setAutoClicker(prev => prev * 2);
+      sendHapticFeedback('heavy');
+    }
+  };
+
+  if (currentPage === 'crypto') {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${themes[theme].bg} p-4`}>
+        <div className="max-w-2xl mx-auto">
+          {saveStatus && (
+            <div className="fixed top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm z-50">
+              {saveStatus}
+            </div>
+          )}
+          
+          <div className="flex gap-2 mb-4 overflow-x-auto">
+            <button onClick={() => setCurrentPage('game')} className="flex-1 min-w-fit bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Home size={20} />
+              Game
+            </button>
+            <button onClick={() => setCurrentPage('achievements')} className="flex-1 min-w-fit bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Award size={20} />
+              Achievements
+            </button>
+            <button onClick={() => setCurrentPage('slots')} className="flex-1 min-w-fit bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Dices size={20} />
+              Slots
+            </button>
+            <button onClick={() => setCurrentPage('crypto')} className="flex-1 min-w-fit bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <DollarSign size={20} />
+              Crypto
+            </button>
+          </div>
+
+          <div className={`${themes[theme].card} rounded-3xl shadow-2xl p-6 mb-4 ${themes[theme].text}`}>
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
+              <Cookie size={32} className="text-amber-400" />
+              COOKIE/USDT
+            </h2>
             
-            const newAnim = {
-              id: Date.now(),
-              x: x,
-              y: y,
-              text: `+${earnedCookies}`
-            };
-            
-            setClickAnimations(prev => [...prev, newAnim]);
-            setTimeout(() => {
-              setClickAnimations(prev => prev.filter(a => a.id !== newAnim.id));
-            }, 1000);
-          };
+            <div className="bg-slate-900 rounded-2xl p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-gray-400">Current Price</span>
+                <span className={`text-3xl font-bold ${cookiePrice >= 0.0347 ? 'text-green-400' : 'text-red-400'}`}>
+                  ${cookiePrice.toFixed(4)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-400">24h Change</span>
+                <span className="text-green-400 flex items-center gap-1">
+                  <TrendingUp size={16} />
+                  +{((Math.random() * 10) + 2).toFixed(2)}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Market Cap</span>
+                <span className="text-white">$1,247,892</span>
+              </div>
+            </div>
 
-          const convertToCrystals = () => {
-            if (cookies >= 10000) {
-              const crystalsToAdd = Math.floor(cookies / 10000);
-              setCrystals(prev => prev + crystalsToAdd);
-              setCookies(prev => prev - (crystalsToAdd * 10000));
-            }
-          };
-
-          const buyClickUpgrade = () => {
-            const cost = Math.floor(100 * Math.pow(1.5, clickUpgradeLevel));
-            if (cookies >= cost) {
-              setCookies(prev => prev - cost);
-              setClickUpgradeLevel(prev => prev + 1);
-              setClickMultiplier(prev => prev + 1);
-            }
-          };
-
-          const buyAutoClicker = () => {
-            const cost = Math.floor(500 * Math.pow(1.6, autoClickerLevel));
-            if (cookies >= cost) {
-              setCookies(prev => prev - cost);
-              setAutoClickerLevel(prev => prev + 1);
-              setAutoClicker(prev => prev + 1);
-            }
-          };
-
-          return (
-            <div className={`min-h-screen bg-gradient-to-br ${themes[theme].bg} p-4`}>
-              <div className="max-w-2xl mx-auto">
-                <div className={`${themes[theme].card} rounded-3xl shadow-2xl p-6 mb-4 ${themes[theme].text}`}>
-                  <h1 className="text-4xl font-bold text-center mb-4">🍪 Cookie Clicker</h1>
-                  
-                  <div className="bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl p-4 mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg font-bold">Level {level}</span>
-                      <span className="text-sm">{xp} / {xpNeeded} XP</span>
-                    </div>
-                    <div className="w-full bg-indigo-200 rounded-full h-4 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-300"
-                        style={{ width: `${(xp / xpNeeded) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-amber-100 rounded-2xl p-4">
-                      <span className="text-sm font-semibold">Cookies</span>
-                      <p className="text-2xl font-bold">{Math.floor(cookies).toLocaleString()}</p>
-                    </div>
-                    
-                    <div className="bg-cyan-100 rounded-2xl p-4">
-                      <span className="text-sm font-semibold">Crystals</span>
-                      <p className="text-2xl font-bold">{crystals}</p>
-                    </div>
-                  </div>
+            <div className="bg-gradient-to-r from-purple-900 to-pink-900 rounded-2xl p-6 mb-4">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Gem size={24} />
+                Exchange Crystals
+              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-gray-300 text-sm">Your Crystals</p>
+                  <p className="text-2xl font-bold">{crystals}</p>
                 </div>
+                <div className="text-4xl">→</div>
+                <div>
+                  <p className="text-gray-300 text-sm">COOKIE Tokens</p>
+                  <p className="text-2xl font-bold">{(crystals / 10).toFixed(2)}</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-400 mb-4">Rate: 10 Crystals = 1 COOKIE Token</p>
+              <button
+                onClick={() => {
+                  const tg = window.Telegram?.WebApp;
+                  if (tg) {
+                    tg.showAlert('Exchange feature coming soon! Connect your wallet to trade COOKIE tokens.');
+                  } else {
+                    alert('Exchange feature coming soon!');
+                  }
+                }}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-4 font-bold text-lg hover:shadow-xl transition-all"
+              >
+                Exchange Now
+              </button>
+              <p className="text-xs text-gray-500 text-center mt-2">⚠️ Demo Only - No Real Money</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-                <div className="flex justify-center mb-4 relative">
-                  <button
-                    onClick={handleCookieClick}
-                    disabled={isBlocked}
-                    className="transform hover:scale-105 transition-all disabled:opacity-50"
+  if (currentPage === 'achievements') {
+    const unlockedCount = Object.keys(achievements).length;
+    const totalCount = achievementsList.length;
+    
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${themes[theme].bg} p-4`}>
+        <div className="max-w-2xl mx-auto">
+          {saveStatus && (
+            <div className="fixed top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm z-50">
+              {saveStatus}
+            </div>
+          )}
+          
+          <div className="flex gap-2 mb-4 overflow-x-auto">
+            <button onClick={() => setCurrentPage('game')} className="flex-1 min-w-fit bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Home size={20} />
+              Game
+            </button>
+            <button onClick={() => setCurrentPage('achievements')} className="flex-1 min-w-fit bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Award size={20} />
+              Achievements
+            </button>
+            <button onClick={() => setCurrentPage('slots')} className="flex-1 min-w-fit bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Dices size={20} />
+              Slots
+            </button>
+            <button onClick={() => setCurrentPage('crypto')} className="flex-1 min-w-fit bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <DollarSign size={20} />
+              Crypto
+            </button>
+          </div>
+
+          <div className={`${themes[theme].card} rounded-3xl shadow-2xl p-6 mb-4 ${themes[theme].text}`}>
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+              <Award size={32} className="text-green-500" />
+              Achievements
+            </h1>
+            <p className="text-lg mb-4">Unlocked: {unlockedCount} / {totalCount}</p>
+            
+            <div className="space-y-3">
+              {achievementsList.map(achievement => {
+                const unlocked = achievements[achievement.id];
+                return (
+                  <div
+                    key={achievement.id}
+                    className={`rounded-xl p-4 ${
+                      unlocked
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
+                        : 'bg-gray-200 text-gray-500'
+                    }`}
                   >
-                    <div className="relative">
-                      <div className={`bg-gradient-to-br ${cookieSkins[currentSkin].color} rounded-full p-12 shadow-2xl cursor-pointer`}>
-                        <div className="text-8xl">{cookieSkins[currentSkin].emoji}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-bold text-lg flex items-center gap-2">
+                          {unlocked ? '✅' : '🔒'} {achievement.name}
+                        </p>
+                        <p className={`text-sm ${unlocked ? 'opacity-90' : 'opacity-70'}`}>
+                          {achievement.desc}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">+{achievement.reward}</p>
+                        <p className="text-xs">cookies</p>
                       </div>
                     </div>
-                  </button>
-                  
-                  {clickAnimations.map(anim => (
-                    <div
-                      key={anim.id}
-                      className="absolute text-2xl font-bold text-amber-600 pointer-events-none"
-                      style={{ left: anim.x, top: anim.y }}
-                    >
-                      {anim.text}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentPage === 'slots') {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${themes[theme].bg} p-4`}>
+        <div className="max-w-2xl mx-auto">
+          {saveStatus && (
+            <div className="fixed top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm z-50">
+              {saveStatus}
+            </div>
+          )}
+          
+          <div className="flex gap-2 mb-4 overflow-x-auto">
+            <button onClick={() => setCurrentPage('game')} className="flex-1 min-w-fit bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Home size={20} />
+              Game
+            </button>
+            <button onClick={() => setCurrentPage('achievements')} className="flex-1 min-w-fit bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Award size={20} />
+              Achievements
+            </button>
+            <button onClick={() => setCurrentPage('slots')} className="flex-1 min-w-fit bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <Dices size={20} />
+              Slots
+            </button>
+            <button onClick={() => setCurrentPage('crypto')} className="flex-1 min-w-fit bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+              <DollarSign size={20} />
+              Crypto
+            </button>
+          </div>
+
+          <div className={`${themes[theme].card} rounded-3xl shadow-2xl p-6 mb-4 ${themes[theme].text}`}>
+            <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">
+              <Dices size={32} className="text-red-500" />
+              Cookie Slots Machine
+            </h1>
+            <p className="mb-6">Cost: 1,000 cookies per spin</p>
+
+            <div className="bg-gradient-to-br from-red-600 to-pink-700 rounded-3xl p-8 mb-6">
+              <div className="bg-white rounded-2xl p-6 mb-6">
+                <div className="flex justify-center items-center gap-4">
+                  {slotSymbols.map((symbol, i) => (
+                    <div key={i} className="text-8xl animate-pulse">
+                      {symbol}
                     </div>
                   ))}
                 </div>
+              </div>
 
-                <button
-                  onClick={convertToCrystals}
-                  disabled={cookies < 10000}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-2xl p-4 mb-4 font-bold disabled:opacity-50"
-                >
-                  Convert 10,000 Cookies → 1 Crystal
-                </button>
+              <button
+                onClick={spinSlots}
+                disabled={cookies < 1000 || isSpinning}
+                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl p-5 font-bold text-xl hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSpinning ? '🎰 SPINNING...' : '🎰 SPIN (1,000 cookies)'}
+              </button>
+            </div>
 
-                <div className="bg-white rounded-3xl shadow-2xl p-6 mb-4">
-                  <h2 className="text-2xl font-bold mb-4">Upgrades</h2>
-                  
-                  <div className="space-y-3">
-                    <button
-                      onClick={buyClickUpgrade}
-                      disabled={cookies < Math.floor(100 * Math.pow(1.5, clickUpgradeLevel))}
-                      className="w-full bg-amber-400 text-white rounded-xl p-4 disabled:opacity-50"
-                    >
-                      <div className="flex justify-between">
-                        <div className="text-left">
-                          <p className="font-bold">Click Power (Lv.{clickUpgradeLevel})</p>
-                          <p className="text-sm">+1 per click</p>
-                        </div>
-                        <p className="font-bold">{Math.floor(100 * Math.pow(1.5, clickUpgradeLevel)).toLocaleString()}</p>
-                      </div>
-                    </button>
+            {lastSlotWin !== null && (
+              <div className={`text-center text-2xl font-bold p-4 rounded-xl ${
+                lastSlotWin > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+              }`}>
+                {lastSlotWin > 0 ? `🎉 YOU WON ${lastSlotWin.toLocaleString()} COOKIES! 🎉` : '😔 Try again!'}
+              </div>
+            )}
 
-                    <button
-                      onClick={buyAutoClicker}
-                      disabled={cookies < Math.floor(500 * Math.pow(1.6, autoClickerLevel))}
-                      className="w-full bg-green-400 text-white rounded-xl p-4 disabled:opacity-50"
-                    >
-                      <div className="flex justify-between">
-                        <div className="text-left">
-                          <p className="font-bold">Auto Clicker (Lv.{autoClickerLevel})</p>
-                          <p className="text-sm">+1 per second</p>
-                        </div>
-                        <p className="font-bold">{Math.floor(500 * Math.pow(1.6, autoClickerLevel)).toLocaleString()}</p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {autoClicker > 0 && (
-                  <div className="text-center text-green-600 font-semibold">
-                    💚 Earning {autoClicker} cookies per second!
-                  </div>
-                )}
-
-                {showLevelUp && (
-                  <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-                    <div className="bg-indigo-600 text-white rounded-3xl p-8 shadow-2xl">
-                      <h2 className="text-4xl font-bold text-center">🎉 LEVEL UP!</h2>
-                      <p className="text-2xl text-center">Level {level}</p>
-                    </div>
-                  </div>
-                )}
-
-                {showAchievement && (
-                  <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
-                    <div className="bg-green-500 text-white rounded-2xl p-4 shadow-2xl">
-                      <p className="font-bold">🏆 {showAchievement.name}</p>
-                      <p className="text-sm">+{showAchievement.reward} cookies</p>
-                    </div>
-                  </div>
-                )}
+            <div className={`${themes[theme].card} rounded-xl p-4 mt-6 ${themes[theme].text}`}>
+              <h3 className="font-bold mb-2">💰 Payout Table:</h3>
+              <div className="space-y-1 text-sm">
+                <p>👑 👑 👑 = 50,000 cookies</p>
+                <p>💎 💎 💎 = 20,000 cookies</p>
+                <p>🔥 🔥 🔥 = 10,000 cookies</p>
+                <p>⭐ ⭐ ⭐ = 5,000 cookies</p>
+                <p>🌈 🌈 🌈 = 3,000 cookies</p>
+                <p>🍪 🍪 🍪 = 2,000 cookies</p>
               </div>
             </div>
-          );
-        }
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<CookieClickerGame />);
-    </script>
+  return (
+    <div className={`min-h-screen bg-gradient-to-br ${themes[theme].bg} p-4 relative overflow-hidden`}>
+      <div className="max-w-2xl mx-auto">
+        {saveStatus && (
+          <div className="fixed top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm z-50">
+            {saveStatus}
+          </div>
+        )}
+        
+        {telegramUser && (
+          <div className="bg-blue-500 text-white rounded-xl p-3 mb-4 text-center">
+            👋 Welcome, {telegramUser.first_name}!
+          </div>
+        )}
+        
+        <div className="flex gap-2 mb-4 overflow-x-auto">
+          <button onClick={() => setCurrentPage('game')} className="flex-1 min-w-fit bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+            <Home size={20} />
+            Game
+          </button>
+          <button onClick={() => setCurrentPage('achievements')} className="flex-1 min-w-fit bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+            <Award size={20} />
+            Achievements
+          </button>
+          <button onClick={() => setCurrentPage('slots')} className="flex-1 min-w-fit bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+            <Dices size={20} />
+            Slots
+          </button>
+          <button onClick={() => setCurrentPage('crypto')} className="flex-1 min-w-fit bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl p-3 font-bold flex items-center justify-center gap-2">
+            <DollarSign size={20} />
+            Crypto
+          </button>
+        </div>
+
+        <div className={`${themes[theme].card} rounded-2xl p-4 mb-4 ${themes[theme].text}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Palette size={20} />
+            <span className="font-bold">Theme:</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto">
+            {Object.keys(themes).map(themeName => (
+              <button
+                key={themeName}
+                onClick={() => setTheme(themeName)}
+                className={`flex-1 min-w-fit px-3 py-2 rounded-lg font-semibold ${
+                  theme === themeName
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
+                    : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                {themeName.charAt(0).toUpperCase() + themeName.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={`${themes[theme].card} rounded-3xl shadow-2xl p-6 mb-4 ${themes[theme].text}`}>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Cookie size={28} />
+            Cookie Skins
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {Object.entries(cookieSkins).map(([key, skin]) => {
+              const owned = ownedSkins.includes(key);
+              const isActive = currentSkin === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => buySkin(key)}
+                  disabled={!owned && cookies < skin.price}
+                  className={`p-4 rounded-xl font-bold transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white scale-105'
+                      : owned
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white'
+                      : 'bg-gray-200 text-gray-700 disabled:opacity-50'
+                  }`}
+                >
+                  <div className="text-4xl mb-2">{skin.emoji}</div>
+                  <p className="text-sm">{skin.name}</p>
+                  <p className="text-xs opacity-90">
+                    {isActive ? '✓ Active' : owned ? 'Click to Use' : `${skin.price.toLocaleString()} 🍪`}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {showAchievement && (
+          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-4 shadow-2xl">
+              <p className="text-sm font-bold">🏆 ACHIEVEMENT UNLOCKED!</p>
+              <p className="text-lg font-bold">{showAchievement.name}</p>
+              <p className="text-sm">+{showAchievement.reward} cookies</p>
+            </div>
+          </div>
+        )}
+
+        {showGoldenCookie && goldenCookie && (
+          <div
+            onClick={handleGoldenCookieClick}
+            className="fixed animate-bounce cursor-pointer z-50"
+            style={{
+              left: `${goldenCookie.x}%`,
+              top: `${goldenCookie.y}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-75 animate-pulse"></div>
+              <Cookie size={60} className="relative text-yellow-400 drop-shadow-2xl animate-spin" style={{ animationDuration: '3s' }} />
+              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded whitespace-nowrap">
+                +10 🍪
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isBlocked && (
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-2xl p-6 shadow-2xl z-50 max-w-sm">
+            <h3 className="text-2xl font-bold mb-2">⚠️ Autoclicker Detected!</h3>
+            <p className="mb-4">Suspicious clicking pattern detected. Clicking disabled for {blockTimer} seconds.</p>
+            <p className="text-sm opacity-90">Play fair to enjoy the game!</p>
+          </div>
+        )}
+
+        <div className={`${themes[theme].card} rounded-3xl shadow-2xl p-6 mb-4 ${themes[theme].text}`}>
+          <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4">
+            🍪 Cookie Clicker
+          </h1>
+          
+          <div className="bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Star className="text-indigo-600" size={24} />
+                <span className="text-lg font-bold text-indigo-900">Level {level}</span>
+              </div>
+              <span className="text-sm font-semibold text-indigo-700">{xp} / {xpNeeded} XP</span>
+            </div>
+            <div className="w-full bg-indigo-200 rounded-full h-4 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-300"
+                style={{ width: `${(xp / xpNeeded) * 100}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-indigo-600 mt-2 text-center">
+              Next reward: {getLevelUpReward(level)} cookies 🍪
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Cookie className="text-amber-600" size={20} />
+                <span className="text-sm font-semibold text-amber-800">Cookies</span>
+              </div>
+              <p className="text-2xl font-bold text-amber-900">{Math.floor(cookies).toLocaleString()}</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-cyan-100 to-blue-100 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Gem className="text-cyan-600" size={20} />
+                <span className="text-sm font-semibold text-cyan-800">Crystals</span>
+              </div>
+              <p className="text-2xl font-bold text-cyan-900">{crystals}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Zap className="text-purple-600" size={16} />
+                <span className="text-xs font-semibold text-purple-800">Per Click</span>
+              </div>
+              <p className="text-xl font-bold text-purple-900">{Math.floor(clickMultiplier).toLocaleString()}</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="text-green-600" size={16} />
+                <span className="text-xs font-semibold text-green-800">Total Clicks</span>
+              </div>
+              <p className="text-xl font-bold text-green-900">{totalClicks.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center mb-4 relative">
+          <button
+            onClick={handleCookieClick}
+            disabled={isBlocked}
+            className={`transform transition-all duration-200 ${
+              isBlocked ? 'opacity-50 cursor-not-allowed scale-95' : 'hover:scale-105 active:scale-95'
+            }`}
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full blur-2xl opacity-50 animate-pulse"></div>
+              <div className={`relative bg-gradient-to-br ${cookieSkins[currentSkin].color} rounded-full p-12 shadow-2xl cursor-pointer`}>
+                <div className="text-8xl">{cookieSkins[currentSkin].emoji}</div>
+              </div>
+            </div>
+          </button>
+          
+          {clickAnimations.map(anim => (
+            <div
+              key={anim.id}
+              className="absolute text-2xl font-bold text-amber-600 animate-ping pointer-events-none"
+              style={{
+                left: anim.x,
+                top: anim.y,
+                animation: 'ping 1s ease-out'
+              }}
+            >
+              {anim.text}
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl shadow-2xl p-6 mb-4">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            🎁 Bonus Rewards!
+          </h2>
+          
+          <div className="space-y-3">
+            <button
+              onClick={showRewardedAd}
+              className="w-full bg-white text-purple-600 rounded-xl p-4 font-bold hover:shadow-lg transition-all"
+            >
+              <div className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="font-bold flex items-center gap-2">
+                    🍪 Get Bonus Cookies
+                  </p>
+                  <p className="text-sm opacity-75">Get 300 cookies instantly!</p>
+                </div>
+                <div className="text-3xl">🎁</div>
+              </div>
+            </button>
+
+            <button
+              onClick={activateBoost}
+              disabled={isBoostActive}
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl p-4 font-bold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="font-bold flex items-center gap-2">
+                    ⚡ Activate 10x Boost
+                  </p>
+                  <p className="text-sm opacity-90">
+                    {isBoostActive ? `Active: ${boostTimer}s left` : '10x earnings for 30 seconds!'}
+                  </p>
+                </div>
+                <div className="text-3xl">🚀</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <button
+          onClick={convertToCrystals}
+          disabled={cookies < 10000}
+          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-2xl p-4 mb-4 font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all"
+        >
+          <div className="flex items-center justify-center gap-2">
+            <Sparkles size={24} />
+            <span>Convert 10,000 Cookies → 1 Crystal</span>
+          </div>
+        </button>
+
+        <div className="bg-white rounded-3xl shadow-2xl p-6 mb-4">
+          <h2 className="text-2xl font-bold text-amber-800 mb-4 flex items-center gap-2">
+            <Cookie size={28} />
+            Cookie Upgrades
+          </h2>
+          
+          <div className="space-y-3">
+            <button
+              onClick={buyClickUpgrade}
+              disabled={cookies < Math.floor(100 * Math.pow(1.5, clickUpgradeLevel))}
+              className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl p-4 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
+            >
+              <div className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="font-bold">Click Power (Lv.{clickUpgradeLevel})</p>
+                  <p className="text-sm opacity-90">+{clickUpgradeLevel < 10 ? 1 : clickUpgradeLevel < 20 ? 5 : 10} per click</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{Math.floor(100 * Math.pow(1.5, clickUpgradeLevel)).toLocaleString()}</p>
+                  <p className="text-sm">cookies</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={buyAutoClicker}
+              disabled={cookies < Math.floor(500 * Math.pow(1.6, autoClickerLevel))}
+              className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-xl p-4 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
+            >
+              <div className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="font-bold">Auto Clicker (Lv.{autoClickerLevel})</p>
+                  <p className="text-sm opacity-90">+{autoClickerLevel < 5 ? 1 : autoClickerLevel < 10 ? 3 : 5} cookies/sec</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{Math.floor(500 * Math.pow(1.6, autoClickerLevel)).toLocaleString()}</p>
+                  <p className="text-sm">cookies</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={buyGoldenTouch}
+              disabled={cookies < Math.floor(2000 * Math.pow(1.8, goldenTouchLevel))}
+              className="w-full bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-xl p-4 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
+            >
+              <div className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="font-bold flex items-center gap-2">
+                    <Star size={18} />
+                    Golden Touch (Lv.{goldenTouchLevel})
+                  </p>
+                  <p className="text-sm opacity-90">×1.5 click multiplier</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{Math.floor(2000 * Math.pow(1.8, goldenTouchLevel)).toLocaleString()}</p>
+                  <p className="text-sm">cookies</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={buyClickEffect}
+              disabled={cookies < Math.floor(1500 * Math.pow(1.7, clickEffectLevel))}
+              className="w-full bg-gradient-to-r from-pink-400 to-rose-500 text-white rounded-xl p-4 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
+            >
+              <div className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="font-bold flex items-center gap-2">
+                    <Sparkles size={18} />
+                    Click Effects (Lv.{clickEffectLevel})
+                  </p>
+                  <p className="text-sm opacity-90">Better click animations!</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{Math.floor(1500 * Math.pow(1.7, clickEffectLevel)).toLocaleString()}</p>
+                  <p className="text-sm">cookies</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-2xl p-6 mb-4">
+          <h2 className="text-2xl font-bold text-cyan-800 mb-4 flex items-center gap-2">
+            <Gem size={28} />
+            Crystal Upgrades (OP!)
+          </h2>
+          
+          <div className="space-y-3">
+            <button
+              onClick={buyCrystalMultiplier}
+              disabled={crystals < (1 + crystalMultiplierLevel)}
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl p-4 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
+            >
+              <div className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="font-bold flex items-center gap-2">
+                    <Zap size={18} />
+                    Crystal Power (Lv.{crystalMultiplierLevel})
+                  </p>
+                  <p className="text-sm opacity-90">×2 to ALL click power!</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{1 + crystalMultiplierLevel}</p>
+                  <p className="text-sm">crystals</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={buyMegaBoost}
+              disabled={crystals < (5 + (megaBoostLevel * 3))}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl p-4 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
+            >
+              <div className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="font-bold flex items-center gap-2">
+                    <Crown size={18} />
+                    Mega Boost (Lv.{megaBoostLevel})
+                  </p>
+                  <p className="text-sm opacity-90">×5 clicks + ×2 auto!</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{5 + (megaBoostLevel * 3)}</p>
+                  <p className="text-sm">crystals</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {autoClicker > 0 && (
+          <div className="mt-4 text-center text-green-600 font-semibold">
+            💚 Earning {autoClicker} cookies per second!
+          </div>
+        )}
+
+        {isBoostActive && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-full font-bold text-lg shadow-2xl z-50 animate-pulse">
+            ⚡ 10x BOOST ACTIVE: {boostTimer}s ⚡
+          </div>
+        )}
+
+        {showLevelUp && (
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-3xl p-8 shadow-2xl animate-bounce">
+              <h2 className="text-4xl font-bold mb-2 text-center">🎉 LEVEL UP! 🎉</h2>
+              <p className="text-2xl font-bold text-center mb-2">Level {level}</p>
+              <p className="text-xl text-center">+{getLevelUpReward(level - 1)} Cookies!</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CookieClickerGame />);
+  </script>
 </body>
 </html>
